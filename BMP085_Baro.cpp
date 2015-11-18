@@ -56,6 +56,7 @@ BMP085_init()
     if ((BusErr = i2c_start( BMP085_I2C_Addr +I2C_WRITE  )) !=0 )
     {
         ThisState = SM_NOTFOUND;
+        i2c_stop(); // and finish by transition into stop state
         return ( BusErr );     // i2c bus could not be opened, or device not attached
     }
 
@@ -96,7 +97,7 @@ BMP085_Read_Process(void )
     static long X1,X2,X3;
     static long B5;
     static long  Up;
-    static unsigned long Timer;
+    static unsigned long t;
     static boolean bus_err = 0;        // in case the device becomes unresponsive - i.e. unplugged
 
     switch (ThisState)
@@ -113,12 +114,12 @@ BMP085_Read_Process(void )
             i2c_write( BMP085_ConvTemp); 	// internal register address
             i2c_stop();
 
-            Timer = millis();
+            t = millis();
             ThisState++;
             break;
 
         case SM_Wait_for_Temp:
-            if (millis() - Timer > 5 ) // wait for 5 ms for the result to arrive
+            if (millis() - t > 5 ) // wait for 5 ms for the result to arrive
                 ThisState++;
             break;
 
@@ -158,13 +159,13 @@ BMP085_Read_Process(void )
             i2c_write( BMP085_ConvPress); 	// Command
             i2c_stop();
 
-            Timer = millis();
+            t = millis();
             ThisState++;
             break;
         }
         case SM_Wait_for_Press:
             // wait for 40ms in this state
-            if (millis() - Timer > 40 ) // wait for 40 ms for the result to arrive
+            if (millis() - t > 40 ) // wait for the result to arrive
                 ThisState++;
             break;
 

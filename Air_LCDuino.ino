@@ -135,8 +135,15 @@ void setup()
   pinMode(Enc_B_PIN, INPUT);    // Use external 10K pullup and 100nf to gnd for debounce
   pinMode(Enc_PRESS_PIN, INPUT);// Use external 10K pullup and 100nf to gnd for debounce
 
-  pinMode(LED1_PIN, OUTPUT);      // the LED
-  pinMode(LED2_PIN, OUTPUT);      // the LED
+  pinMode(LED1_PIN, OUTPUT);      
+  pinMode(LED2_PIN, OUTPUT);     
+
+  // the i2c pins -- I2C mode will overwrite this 
+  pinMode(18,INPUT);    // SDA
+  pinMode(19,OUTPUT);   // SCL 
+  digitalWrite( 18, LOW); 
+  digitalWrite( 19, LOW);
+
 
   attachInterrupt(0, ISR_KnobTurn, FALLING);    // for the rotary encoder knob rotating
   attachInterrupt(1, ISR_ButtonPress, FALLING);    // for the rotary encoder knob push
@@ -146,6 +153,7 @@ void setup()
 #endif  
   wdt_enable(WDTO_2S);
 
+ 
   lcd.begin(LCD_COLS, LCD_ROWS);              // initialize the LCD columns and rows
 
   lcd.home ();                   // go home
@@ -158,24 +166,22 @@ void setup()
 
   if ( (err = BMP085_init()) != 0)
   {
-    lcd.clear ();
+    lcd.setCursor ( 0, 0 );
     lcd.print("No Baro!");
     while (1);          // let the watchdog catch it and reboot.
   }
-  else
-    BMP085_startMeasure( );    // initiate an other measure cycle
-
-
+  
   if ( (err = SI7021_init()) != 0)
   {
     lcd.setCursor ( 0, 1 );
     lcd.print("No Hygr!");
     while (1);          // let the watchdog catch it and reboot.
   }
-  else
-    SI7021_startMeasure(  );    // initiate an other measure cycle
+ 
+  BMP085_startMeasure( );    // initiate initial measure cycle
+  SI7021_startMeasure(  );    // initiate initial measure cycle
 
-  wdt_enable(WDTO_8S);  // set slower
+  wdt_enable(WDTO_8S);  // set watchdog slower
 
 }
 
@@ -207,7 +213,6 @@ void loop()
 
   // update every n sec
   t = millis();
-
 
   adc_val = analogRead(VBUS_ADC);
   Vbus_Volt = adc_val * VBUS_ADC_BW;
@@ -278,7 +283,6 @@ void loop()
           lcd.setCursor ( 0, 1 );
           lcd.print( hPaToInch(AltimeterSetting) );
           lcd.print("\"Hg");
-  
         }
         LongPressCnt =0;
       }
@@ -345,6 +349,7 @@ void loop()
       if ( TD_deltaC > TD_DELTA_ALARM)
         REDledAlarm = false;
       break;
+      
 #ifdef WITH_WIND
     case Wind_SPD:
       lcd.print("Wind SPD");
