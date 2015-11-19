@@ -1125,11 +1125,11 @@ Please make sure your boards conform to these design rules.</description>
 <element name="R6" library="dp_devices" package="R603" value="" x="43.5102" y="52.578" smashed="yes" rot="R90">
 <attribute name="NAME" x="41.8592" y="51.816" size="1.27" layer="25" font="vector" ratio="10" rot="R90"/>
 </element>
-<element name="R7" library="dp_devices" package="R603" value="1k" x="12.0716625" y="40.01515" smashed="yes" rot="MR270">
+<element name="R7" library="dp_devices" package="R603" value="100k" x="12.0716625" y="40.01515" smashed="yes" rot="MR270">
 <attribute name="NAME" x="12.3256625" y="38.23715" size="1.016" layer="26" font="vector" ratio="10" rot="MR270"/>
 <attribute name="VALUE" x="12.4526625" y="43.31715" size="1.27" layer="28" font="vector" ratio="10" rot="MR270"/>
 </element>
-<element name="R8" library="dp_devices" package="R603" value="1k" x="14.601640625" y="40.00259375" smashed="yes" rot="MR270">
+<element name="R8" library="dp_devices" package="R603" value="100k" x="14.601640625" y="40.00259375" smashed="yes" rot="MR270">
 <attribute name="NAME" x="14.855640625" y="38.22459375" size="1.016" layer="26" font="vector" ratio="10" rot="MR270"/>
 <attribute name="VALUE" x="14.982640625" y="43.30459375" size="1.016" layer="28" font="vector" ratio="10" rot="MR270"/>
 </element>

@@ -3771,8 +3771,8 @@ Source: http://www.onsemi.co.jp .. LM317M-D.PDF</description>
 <part name="R4" library="dp_devices" deviceset="RESISTOR" device="-0603" value="10k"/>
 <part name="R5" library="dp_devices" deviceset="RESISTOR" device="-0603" value="10k"/>
 <part name="R6" library="dp_devices" deviceset="RESISTOR" device="-0603"/>
-<part name="R7" library="dp_devices" deviceset="RESISTOR" device="-0603" value="1k"/>
-<part name="R8" library="dp_devices" deviceset="RESISTOR" device="-0603" value="1k"/>
+<part name="R7" library="dp_devices" deviceset="RESISTOR" device="-0603" value="100k"/>
+<part name="R8" library="dp_devices" deviceset="RESISTOR" device="-0603" value="100k"/>
 <part name="R9" library="SparkFun" deviceset="RESISTOR" device="0603" value="10K"/>
 <part name="C3" library="SparkFun" deviceset="CAP" device="0805" value="0.1uF"/>
 <part name="GND7" library="SparkFun" deviceset="GND" device=""/>
