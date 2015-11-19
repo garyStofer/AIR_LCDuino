@@ -13,7 +13,7 @@
 
 #define SI7021_ADDR (0x40<<1)
 #define SI7021_RESET_CMD    0xFE
-#define SI7021_Convert_CMD 0xF5        // Starts a temperature and RH conversion cycle, but doe not hold CLK line until complete
+#define SI7021_Convert_CMD 0xF5        // Starts a temperature and RH conversion cycle, but does not hold CLK line until complete
 #define SI7021_ReadPrevTemp_CMD 0xE0     // Read out the temperature reading from the previous conversion
 #define SI7021_WriteUserRegister 0xE6    // used to turn the heater on and set ADC resolution
 #define SI7021_ReadUserRegister  0xE7
@@ -31,7 +31,8 @@ enum _SI7021_READ_SM {
 static int ThisState = SM_IDLE;
 
 struct tag_HygReadings HygReading;
-// Check if the Device can be addressed -- Listen for the ACK on address
+
+// See if the Device can be addressed -- Listen for the ACK on address
 unsigned short
 SI7021_init(void)
 {
@@ -41,10 +42,10 @@ SI7021_init(void)
 	 
 	ThisState = SM_IDLE;
     
-    if ((BusErr = i2c_start( SI7021_ADDR +I2C_WRITE  )) !=0 )
-    {
-        ThisState = SM_NOTFOUND;
-    } 
+  if ((BusErr = i2c_start( SI7021_ADDR +I2C_WRITE  )) !=0 )
+  {
+      ThisState = SM_NOTFOUND;
+  } 
 	 
 	i2c_stop(); // and finish by transition into stop state
 	return ( BusErr );     // i2c bus could not be opened, or device not attached
@@ -62,7 +63,7 @@ SI7021_startMeasure(void)
 void
 SI7021_Read_Process(void )
 {
-    static unsigned long Timer;
+    static unsigned long t;
 	
     union {
         unsigned char bytes[2];
@@ -84,12 +85,12 @@ SI7021_Read_Process(void )
             }
 			      i2c_write( SI7021_Convert_CMD); 	// internal register address
             i2c_stop();
-            Timer = millis();
+            t = millis();
             ThisState++;
             break;
 
         case SM_Wait_Results:   // The conversion should take a maximum of 20.4 ms
-            if (millis() - Timer > 40 ) // wait for 40 ms for the result to arrive
+            if ((millis() - t) > 30) // wait for the result to arrive
                 ThisState++;
             break;
 
@@ -124,7 +125,7 @@ SI7021_Read_Process(void )
 
         case SM_ERROR:
             HygReading.TempC = -300.0;   // impossible numbers
-            HygReading.RelHum = -1.0; 
+            HygReading.RelHum = 1.0; 
 			      i2c_stop();
             ThisState++;
             break;
@@ -133,8 +134,8 @@ SI7021_Read_Process(void )
             break;
 			
 		case SM_NOTFOUND:   // initially not found -- never escapes from here.
-            HygReading.TempC = -299.0;   // Equally impossible numbers
-            HygReading.RelHum = -2.0; 
+            HygReading.TempC = -300.0;   // Equally impossible numbers
+            HygReading.RelHum = 2.0; 
             break;   
     }
 

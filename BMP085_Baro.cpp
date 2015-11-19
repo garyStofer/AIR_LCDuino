@@ -1,5 +1,6 @@
 #include "BMP085_baro.h"
-
+#include <avr/wdt.h>
+#include <LiquidCrystal.h>
 
 //////////////////////////////////////////// BMP805 sensor  //////////////////////
 #define BMP085_I2C_Addr 0xEE
@@ -24,6 +25,7 @@ union {
 }BMP085_Cal;
 
 struct tag_baroReadings BaroReading;
+float AltimeterSetting = STD_ALT_SETTING;
 
 enum _BMP085_READ_SM {
     SM_START = 0,
@@ -56,6 +58,7 @@ BMP085_init()
     if ((BusErr = i2c_start( BMP085_I2C_Addr +I2C_WRITE  )) !=0 )
     {
         ThisState = SM_NOTFOUND;
+        i2c_stop(); // and finish by transition into stop state
         return ( BusErr );     // i2c bus could not be opened, or device not attached
     }
 
@@ -96,7 +99,7 @@ BMP085_Read_Process(void )
     static long X1,X2,X3;
     static long B5;
     static long  Up;
-    static unsigned long Timer;
+    static unsigned long t;
     static boolean bus_err = 0;        // in case the device becomes unresponsive - i.e. unplugged
 
     switch (ThisState)
@@ -113,12 +116,12 @@ BMP085_Read_Process(void )
             i2c_write( BMP085_ConvTemp); 	// internal register address
             i2c_stop();
 
-            Timer = millis();
+            t = millis();
             ThisState++;
             break;
 
         case SM_Wait_for_Temp:
-            if (millis() - Timer > 5 ) // wait for 5 ms for the result to arrive
+            if (millis() - t > 5 ) // wait for 5 ms for the result to arrive
                 ThisState++;
             break;
 
@@ -158,13 +161,13 @@ BMP085_Read_Process(void )
             i2c_write( BMP085_ConvPress); 	// Command
             i2c_stop();
 
-            Timer = millis();
+            t = millis();
             ThisState++;
             break;
         }
         case SM_Wait_for_Press:
             // wait for 40ms in this state
-            if (millis() - Timer > 40 ) // wait for 40 ms for the result to arrive
+            if (millis() - t > 40 ) // wait for the result to arrive
                 ThisState++;
             break;
 
@@ -251,5 +254,35 @@ BMP085_Read_Process(void )
     }
 
     
+}
+
+extern unsigned char ShortPressCnt;
+extern char EncoderCnt;        
+extern LiquidCrystal lcd;
+
+void
+Alt_Setting_adjust( void )
+{     
+        char p;
+        
+        ShortPressCnt = p = EncoderCnt =0;
+        while ( !ShortPressCnt ) // set QNH
+        {
+           wdt_reset();
+  
+          if (EncoderCnt > p)
+            AltimeterSetting += 0.25;
+          else if (EncoderCnt < p)
+            AltimeterSetting -= 0.25;
+  
+          p = EncoderCnt;
+  
+          lcd.setCursor ( 0, 0 );
+          lcd.print("Set QNH ");
+          lcd.setCursor ( 0, 1 );
+          lcd.print( hPaToInch(AltimeterSetting) );
+          lcd.print("\"Hg");
+        }
+
 }
 

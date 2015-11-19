@@ -9,6 +9,7 @@
 #include "math.h"
 #include "Atmos.h"
 
+
 #define Tsl (288.15)		  // standard atmosphere temp in Kelvin at sea level
 #define Psl STD_ALT_SETTING	  // standard atmosphere pressure at sea level, aka QNE
 #define LapsR (0.0065)		// standard atmosphere lapse rate
@@ -86,5 +87,56 @@ DensityAlt( float P_hPa, float Temp_C)
 	float D_alt = (Tsl/LapsR) * ( 1- pow( ( (P_hPa/Psl) / (T/Tsl) ),pwr_da));
 	
 	return D_alt;
+}
+
+// Calculate WetBulb temp from Temp_C, Stationpressure_hPa and relative humidity.
+// Formula from   https://www.easycalculation.com/weather/learn-dewpoint-wetbulb.php
+
+float
+T_wetbulb_C(float Temp_C, float Press_hPa, float Rh)
+{
+    float Twb = 0;                 // temp Wetbulb 
+    float incr = 10;               // initial approach increment 
+    short cursign,previoussign = 1;
+    float e_diff = 1;              // Difference in vapor press the itterative code is driving to 0
+    float e_guess;                 // The current itterations Vapor pressure calculated from the current itterations Wetbulb temp
+ 
+    const float es = 6.112 * exp((17.67 * Temp_C) / (Temp_C + 243.5));    // Saturated Vapor Pressure
+    const float e  = es * Rh /100.0;                                      // Vapor pressure 
+    
+   // es =  6.112 * exp(17.67 * Temp_C / (Temp_C + 243.5)); // Saturated Vapor pressure 
+    // e = es * Rh /100.0;
+
+    // itterative loop driving e_diff to 0 by calculating a wetbulb vapor pressure e_guess from an incremental Twb --
+    // initially aproaching 0 by using 10 deg incrementgs in assumed Twb, then switching to 1/10 of that each time the 
+    // sign changes until we are at 0 or close enough (0.005)
+    
+    while (abs(e_diff) > 0.005) 
+    {
+      e_guess = 6.112 * exp((17.67 * Twb) / (Twb + 243.5));
+      e_guess = e_guess - Press_hPa * (Temp_C - Twb) * 0.00066 * (1 + (0.00115 * Twb));
+      e_diff = e - e_guess; 
+      
+      if (e_diff == 0)
+          break;        // we hit the target right on -- it's not going to get any better than this -- exit at once
+  
+      if (e_diff < 0)
+        cursign = -1;
+      else
+        cursign = 1;
+                          
+      if (cursign != previoussign)    // when sign changes use aproach speed of 1/10 each time.
+      {
+              previoussign = cursign;
+              incr = incr/10;
+      }
+      else
+        incr = incr;                // obviously redundant but left here for clarity of code
+              
+     Twb = Twb + incr * previoussign; 
+            
+    }
+   
+    return Twb;
 }
 
