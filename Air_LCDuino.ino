@@ -10,8 +10,9 @@
 #include "Atmos.h"
 #include "Wind.h"
 
-// uncomment for Anemometer and Vane readout
+// comment/uncomment for additional features Wind and WetBulb
 #define WITH_WIND 
+#define WetBulbTemp
 
 #define LCD_COLS 8
 #define LCD_ROWS 2
@@ -45,6 +46,9 @@ enum Displays {
   Rel_Hum,
   Temp,
   DewPoint,
+#ifdef WetBulbTemp
+  T_WetBulb,
+#endif
   TD_spread,
 #ifdef WITH_WIND
   Wind_DIR,
@@ -59,7 +63,7 @@ char EncoderPressedCnt = 0;
 unsigned char ShortPressCnt = 0;
 unsigned char LongPressCnt = 0;
 
-static float AltimeterSetting = STD_ALT_SETTING;
+
 
 LiquidCrystal lcd(9, 8, 6, 7, 4, 5); // in 4 bit interface mode
 
@@ -192,12 +196,13 @@ void loop()
   short adc_val;
   float Vbus_Volt;
   short rounded;
+  float result ;
   static char PrevEncCnt = EncoderCnt;	// used to indicate that user turned knob
   static unsigned char PrevShortPressCnt = 0;
   static char p;
   float dewptC, TD_deltaC;
   float Temp_C;
-  static bool REDledAlarm = false;
+   static bool REDledAlarm = false;
   static unsigned long t = millis();
  
 
@@ -264,34 +269,18 @@ void loop()
     case Alt:
       if (LongPressCnt)   // entering setup
       {
-        unsigned char sp = ShortPressCnt;
-        p = EncoderCnt;
-        while ( ShortPressCnt == sp )	// set QNH
-        {
-          if (EncoderCnt != p)
-            wdt_reset();
-  
-          if (EncoderCnt > p)
-            AltimeterSetting += 0.25;
-          else if (EncoderCnt < p)
-            AltimeterSetting -= 0.25;
-  
-          p = EncoderCnt;
-  
-          lcd.setCursor ( 0, 0 );
-          lcd.print("Set QNH ");
-          lcd.setCursor ( 0, 1 );
-          lcd.print( hPaToInch(AltimeterSetting) );
-          lcd.print("\"Hg");
-        }
+        Alt_Setting_adjust( );
         LongPressCnt =0;
+        lcd.home (  );
+        EncoderCnt = Alt;    // restore the Alt display item
       }
+      
       lcd.print(" Alt *  ");
       lcd.setCursor ( 0, 1 );
       rounded = MtoFeet(Altitude(BaroReading.BaromhPa, AltimeterSetting)) + 0.5;
       lcd.print( rounded);
       lcd.print(" ft    ");
-      EncoderCnt = Alt;		// restore the Alt display item
+      
       break;
 
     case Station_P:
@@ -337,7 +326,20 @@ void loop()
       lcd.print(char(223)); // degree symbol
       lcd.print("F   ");
       break;
+      
+#ifdef WetBulbTemp
+    case  T_WetBulb:
+      lcd.print("Wet Bulb");
+      lcd.setCursor ( 0, 1 );
+      result = T_wetbulb_C(Temp_C,BaroReading.BaromhPa,HygReading.RelHum);
+      
+      lcd.print( CtoF(result));
+      lcd.print(char(223)); // degree symbol
+      lcd.print("F   ");
+      break;
+#endif      
 
+      break;
     case TD_spread:
       lcd.print("TDspread");
       lcd.setCursor ( 0, 1 );
@@ -377,8 +379,9 @@ void loop()
       if  ( LongPressCnt) 
       {
           WindDirCal(  );   // blocking until completed
-          lcd.setCursor ( 0, 0 );
+          lcd.home (  );
           LongPressCnt =0;
+          EncoderCnt = Wind_DIR;    // restore the current display item
       }    
       
       lcd.print("Wnd DIR*");

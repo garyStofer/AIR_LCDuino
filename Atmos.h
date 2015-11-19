@@ -20,6 +20,7 @@ extern float DewPt( float Tc, float RH );
 extern float PressureAlt( float press_hPa);
 extern float DensityAlt( float P_hPa, float Temp_C);
 extern float Altitude ( float P_hPa, float P_sl);
+extern float T_wetbulb_C(float Temp_C,float Press_hPa, float Rh);
 
 #ifdef	__cplusplus
 }

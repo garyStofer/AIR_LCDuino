@@ -1,5 +1,6 @@
 #include "BMP085_baro.h"
-
+#include <avr/wdt.h>
+#include <LiquidCrystal.h>
 
 //////////////////////////////////////////// BMP805 sensor  //////////////////////
 #define BMP085_I2C_Addr 0xEE
@@ -24,6 +25,7 @@ union {
 }BMP085_Cal;
 
 struct tag_baroReadings BaroReading;
+float AltimeterSetting = STD_ALT_SETTING;
 
 enum _BMP085_READ_SM {
     SM_START = 0,
@@ -252,5 +254,35 @@ BMP085_Read_Process(void )
     }
 
     
+}
+
+extern unsigned char ShortPressCnt;
+extern char EncoderCnt;        
+extern LiquidCrystal lcd;
+
+void
+Alt_Setting_adjust( void )
+{     
+        char p;
+        
+        ShortPressCnt = p = EncoderCnt =0;
+        while ( !ShortPressCnt ) // set QNH
+        {
+           wdt_reset();
+  
+          if (EncoderCnt > p)
+            AltimeterSetting += 0.25;
+          else if (EncoderCnt < p)
+            AltimeterSetting -= 0.25;
+  
+          p = EncoderCnt;
+  
+          lcd.setCursor ( 0, 0 );
+          lcd.print("Set QNH ");
+          lcd.setCursor ( 0, 1 );
+          lcd.print( hPaToInch(AltimeterSetting) );
+          lcd.print("\"Hg");
+        }
+
 }
 

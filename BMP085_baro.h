@@ -7,6 +7,7 @@
 
 #include "Arduino.h"
 #include "i2cmaster.h"
+#include "Atmos.h"
 
 
 #ifndef BMP085_BARO_H
@@ -27,9 +28,13 @@ struct tag_baroReadings
 };
 
 extern  struct tag_baroReadings BaroReading;
+extern  float AltimeterSetting;
+
+
 extern unsigned  BMP085_init(void);
 extern void BMP085_startMeasure( void );
 extern void BMP085_Read_Process(void );
+extern void Alt_Setting_adjust( void );
 
 #ifdef	__cplusplus
 }
