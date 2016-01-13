@@ -42,7 +42,7 @@ enum _BMP085_READ_SM {
 
 
 // the state machine var
-static  int ThisState = SM_IDLE;
+static  int ThisState = SM_NOTFOUND;
 
 unsigned 
 BMP085_init()
@@ -52,8 +52,6 @@ BMP085_init()
 
     delay(11);        // Device has a 10 ms startup delay 
     i2c_init();
-
-    ThisState = SM_IDLE;
     
     if ((BusErr = i2c_start( BMP085_I2C_Addr +I2C_WRITE  )) !=0 )
     {
@@ -61,6 +59,9 @@ BMP085_init()
         i2c_stop(); // and finish by transition into stop state
         return ( BusErr );     // i2c bus could not be opened, or device not attached
     }
+    else
+      ThisState = SM_IDLE;
+    
 
     if (	i2c_write( BMP085_EEprom) == 0) 	// internal register address for calibration coefficients
     {
@@ -248,7 +249,7 @@ BMP085_Read_Process(void )
 
         case SM_NOTFOUND:   // initially not found or could not read calibration values -- never escapes from here.
   //     	Serial.print("BMP085 not found");
-            BaroReading.TempC = -300.0;   // Equally impossible numbers
+            BaroReading.TempC = -301.0;   // Equally impossible numbers
             BaroReading.BaromhPa  =-1.0;
             break;     
     }

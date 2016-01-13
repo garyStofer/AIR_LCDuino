@@ -49,7 +49,7 @@ void WindSetup()
 
   // Read from eeprom
   // TODO: this needs to go further out in scope if the EEPROM is used to store other setup related items such as metric/imperial display etc
-  EEPROM.get(0, WindCal);
+  EEPROM.get(2, WindCal);
 
 }
 
@@ -133,7 +133,7 @@ WindDirCal( void )
   }
   // Store min & max in EEprom
   // TODO: this needs to go further out in scope if the EEPROM is used to store other setup related items such as metric/imperial display etc
-  EEPROM.put(0, WindCal);
+  EEPROM.put(2, WindCal);
 }
 
 

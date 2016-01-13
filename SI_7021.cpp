@@ -28,7 +28,7 @@ enum _SI7021_READ_SM {
     SM_IDLE,
 	SM_NOTFOUND
 };
-static int ThisState = SM_IDLE;
+static int ThisState = SM_NOTFOUND;
 
 struct tag_HygReadings HygReading;
 
@@ -40,12 +40,13 @@ SI7021_init(void)
 	 
 	i2c_init();
 	 
-	ThisState = SM_IDLE;
-    
-  if ((BusErr = i2c_start( SI7021_ADDR +I2C_WRITE  )) !=0 )
+	if ((BusErr = i2c_start( SI7021_ADDR +I2C_WRITE  )) !=0 )
   {
       ThisState = SM_NOTFOUND;
   } 
+  else
+    ThisState = SM_IDLE;
+  
 	 
 	i2c_stop(); // and finish by transition into stop state
 	return ( BusErr );     // i2c bus could not be opened, or device not attached
@@ -124,7 +125,7 @@ SI7021_Read_Process(void )
             break;
 
         case SM_ERROR:
-            HygReading.TempC = -300.0;   // impossible numbers
+            HygReading.TempC = -302.0;   // impossible numbers
             HygReading.RelHum = 1.0; 
 			      i2c_stop();
             ThisState++;
@@ -134,7 +135,7 @@ SI7021_Read_Process(void )
             break;
 			
 		case SM_NOTFOUND:   // initially not found -- never escapes from here.
-            HygReading.TempC = -300.0;   // Equally impossible numbers
+            HygReading.TempC = -302.0;   // Equally impossible numbers
             HygReading.RelHum = 2.0; 
             break;   
     }
