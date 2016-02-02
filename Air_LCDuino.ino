@@ -3,19 +3,18 @@
 // Warning : This sketch needs to be compiled and run on a device with Optiboot since the watchdog doesn't work under std BL
 // Last compiled and tested with Arduino IDE 1.6.6
 
+#include "build_opts.h"		// Controls build time features
 #include <LiquidCrystal.h>
 #include <avr/wdt.h>
 #include "BMP085_baro.h"
 #include "SI_7021.h"
 #include "TMP100.h"
 #include "Atmos.h"
-#include "Wind.h"
+#include "Wind.h"	
+#include "RPM.h"	
 #include <EEPROM.h>
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  BUILD OPTIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-// comment/uncomment for additional features Wind and WetBulb
-//#define WITH_WIND 
-#define WetBulbTemp
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  BUILD OPTIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 
 #define LCD_COLS 8
@@ -23,7 +22,7 @@
 
 //With a Temp-Dewpoint delta of less that 3degC (~5degF) you can expect fog, so I set the default for the alarm a bit higher than that.
 #define TD_DELTA_ALARM	4.0 // in degC when the alarm is to come on
-#define VOLT_LOW_ALARM 6.0
+#define VOLT_LOW_ALARM 6.5
 #define VOLT_HIGH_ALARM 15.0
 #define FREEZE_ALARM 1.0
 
@@ -32,7 +31,7 @@
 #define Enc_A_PIN 2     // This generates the interrupt, providing the click  aka PD2 (Int0)
 #define Enc_B_PIN 14    // This is providing the direction aka PC0,A0
 #define Enc_PRESS_PIN 3	// aka PD3 ((Int1)
-#define Enc_DIRECTION (-1)    // polarity of encoder , either -1 or +1 depending on the phase relation of the two signals in regard of the turn direction
+#define Enc_DIRECTION (-1)  // polarity of encoder , either -1 or +1 depending on the phase relation of the two signals in regard of the turn direction
 
 #define LED1_PIN 10			// aka PB2
 #define LED2_PIN 17			// aka PC3,A3
@@ -64,12 +63,16 @@ enum Displays {
   Wind_SPD,
   Wind_AVG,
   Wind_GST,
+#else ifdef WITH_RPM
+  RPM,
 #endif
+  DISP_END        // this must be the last entry
  };
 
 // Globals for rotary encoder
 char EncoderCnt = D_Alt;    // Default startup display
 char EncoderPressedCnt = 0;
+char EncoderDirection = -1; // So that it decremets to a valid display in case the default display is not currently valid due to sensor lacking
 unsigned char ShortPressCnt = 0;
 unsigned char LongPressCnt = 0;
 static bool MetricDisplay = false;
@@ -99,28 +102,24 @@ static bool No_TMP100 = true;
   It is assumed that the direction  quadrature signal is not bouncing while the first phase is causing the initial interrupt as it's signal 
   is 90deg opposed.  RC filtering of the contacts is required. 
 
-  Two encoder count variables are being modified by this ISR
-    A: EncoderCnt when the knob is turned without the button being press
-    B: EncoderPressCnt when the knob is  turned while the button is also pressed. This happens only after a LONG press timeout
+  Three encoder count variables are being modified by this ISR
+    1) EncoderCnt increments or dewcrements when the knob is turned without the button being press
+    2) EncoderPressCnt increments or decrements when the knob is  turned while the button is also pressed. 
+       This happens only after a LONG press timeout
+    3) EncoderDirection either +1 or -1 depending on the direction the user turned the knob last
 */
 void ISR_KnobTurn( void)
 {
+  if ( digitalRead( Enc_B_PIN ) )
+    EncoderDirection = Enc_DIRECTION;
+  else 
+    EncoderDirection = -Enc_DIRECTION;
+     
   if ( digitalRead( Enc_PRESS_PIN ) )
-  {
-    if ( digitalRead( Enc_B_PIN ) )
-      EncoderCnt = EncoderCnt + Enc_DIRECTION;
-    else
-      EncoderCnt = EncoderCnt - Enc_DIRECTION;
-
-  }
+       EncoderCnt += EncoderDirection;
   else
-  {
-    if ( digitalRead( Enc_B_PIN ) )
-      EncoderPressedCnt = EncoderPressedCnt + Enc_DIRECTION;
-    else
-      EncoderPressedCnt = EncoderPressedCnt - Enc_DIRECTION;
-  }
-
+       EncoderPressedCnt += EncoderDirection;
+  
 }
 
 
@@ -174,6 +173,8 @@ void setup()
 
 #ifdef WITH_WIND 
   WindSetup() ;
+#else ifdef WITH_RPM
+  RPM_Setup();
 #endif  
 
   wdt_enable(WDTO_2S);
@@ -215,12 +216,14 @@ void setup()
       No_TMP100 = true;
     }
     else
+    {
       No_TMP100 = false;
+    }
   }
 
-#ifndef WITH_WIND
+#ifndef WITH_WIND ||  WITH_RPM
   if ( No_Baro && No_Hygro && No_TMP100)
-      while (1);          // let the watchdog catch it and reboot.
+      while (1);          // Since there is nothing to measure let the watchdog catch it and reboot, Maybe a sensor gets plugged in soon.
  #endif
  
   BMP085_startMeasure( );    // initiate initial measure cycle
@@ -228,10 +231,9 @@ void setup()
   TMP100_startMeasure( );
 
   EEPROM.get( 0, MetricDisplay);
-  // EEPROM.get( 2, WindCal); Done in Wind.cpp
- 
+  
   wdt_enable(WDTO_8S);  // set watchdog slower
-  digitalWrite( LED1_PIN, LOW); 
+  digitalWrite( LED1_PIN, LOW);   // Turn LEDs off
   digitalWrite( LED2_PIN, LOW);
 }
 
@@ -253,14 +255,20 @@ void loop()
  
  
   wdt_reset();
+
+     
 #ifdef WITH_WIND  
   WindRead();
+#else ifdef WITH_RPM
+  RPM_Read();
+	
 #endif
   BMP085_Read_Process();
   SI7021_Read_Process();
   TMP100_Read_Process();
   
-  // nothing new to display
+ 
+  // anything to display ?
   if ( t + UPDATE_PER > millis() && EncoderCnt == PrevEncCnt && ShortPressCnt == PrevShortPressCnt)
     return;
 
@@ -270,35 +278,38 @@ void loop()
   adc_val = analogRead(VBUS_ADC);
   Vbus_Volt = adc_val * VBUS_ADC_BW;
  
- // Note: This can come from the Barometer or Hygrometer temp reading, but hyg has more resolution
+ // Note: Temperatur can come from the Barometer or Hygrometer temp reading, but hyg has more resolution
+  TD_deltaC = 99.0;         // init to huge value in case no Hygrometer present, 
   if (No_Hygro == false )
-   Temp_C = HygReading.TempC;
+  {
+    Temp_C = HygReading.TempC;
+    dewptC = DewPt( Temp_C, HygReading.RelHum);
+    TD_deltaC = Temp_C - dewptC;
+  }
   else if (No_Baro == false )
 	 Temp_C = BaroReading.TempC ;
-  else 
+  else if (No_TMP100 == false) 
 	 Temp_C = TMP100_TempC;
+  else
+    Temp_C = -300.0 ;  // Impossible value, will never be displayed 
+    
   
-  
-  dewptC = DewPt( Temp_C, HygReading.RelHum);
-  TD_deltaC = Temp_C - dewptC;
-
-
-  // Alarms -- Turn the red light on and switch to the alarmin display, TD-Alarm has priority over voltage
+  // Alarms -- Turn the red light on and switch to the alarming display, TD-Alarm has priority over voltage
   if (Vbus_Volt < VOLT_LOW_ALARM  || Vbus_Volt > VOLT_HIGH_ALARM )
   {
-    if (!REDledAlarm)
-      EncoderCnt = V_Bus; 		// switch to the Alarming display
+     if (! REDledAlarm)
+      EncoderCnt = V_Bus; 		// switch to the Alarming display once
 
-    REDledAlarm = true;
+      REDledAlarm = true;
 
   }
 
   if ( TD_deltaC < TD_DELTA_ALARM)
   {
-    if (!REDledAlarm)
-      EncoderCnt = TD_spread; 		// switch to the Alarming display
+      if (! REDledAlarm)
+        EncoderCnt = TD_spread; 		// switch to the Alarming display once
 
-    REDledAlarm = true;
+      REDledAlarm = true;
   }
 
 
@@ -308,10 +319,16 @@ void loop()
   else
     digitalWrite( LED2_PIN, LOW);
 
+  // Start of the individual readings display 
   lcd.home(  );  // Don't use LCD clear because of screen flicker
 
-
   re_eval:
+// Limit this display to valid choices, wrap around if invalid choice is reached
+  if (EncoderCnt < 0 ) 
+        EncoderCnt = DISP_END-1;
+  if (EncoderCnt >= DISP_END)
+        EncoderCnt = 0; 
+  
   switch (EncoderCnt)
   {
     case V_Bus:
@@ -328,7 +345,7 @@ void loop()
     case D_Alt:
       if (No_Baro)
       {
-        EncoderCnt++;
+        EncoderCnt += EncoderDirection;
         goto re_eval;
       }
       lcd.print("Dens Alt");
@@ -352,7 +369,7 @@ void loop()
     case Alt:
       if (No_Baro)
       {
-        EncoderCnt++;
+        EncoderCnt += EncoderDirection;
         goto re_eval;
       }
       
@@ -384,7 +401,7 @@ void loop()
     case Station_P:
       if (No_Baro)
       {
-        EncoderCnt++;
+        EncoderCnt += EncoderDirection;
         goto re_eval;
       }
       lcd.print("Pressure");
@@ -405,7 +422,7 @@ void loop()
     case Rel_Hum:
       if (No_Hygro)
       {
-        EncoderCnt++;
+        EncoderCnt += EncoderDirection;
         goto re_eval;
       }
       lcd.print("Humidity");
@@ -418,7 +435,7 @@ void loop()
     case Temp:
       if (No_Hygro && No_Baro && No_TMP100)
       {
-        EncoderCnt++;
+        EncoderCnt += EncoderDirection;
         goto re_eval;
       }
 
@@ -452,7 +469,7 @@ void loop()
     case DewPoint:
       if (No_Hygro)
       {
-        EncoderCnt++;
+        EncoderCnt += EncoderDirection;
         goto re_eval;
       }
       lcd.print("DewPoint");
@@ -477,11 +494,13 @@ void loop()
 #ifdef WetBulbTemp
 
     case  T_WetBulb:
+    
       if (No_Hygro)
       {
-        EncoderCnt++;
+        EncoderCnt += EncoderDirection;
         goto re_eval;
       }
+      
       lcd.print("Wet Bulb");
       lcd.setCursor ( 0, 1 );
       if ( No_Baro)
@@ -506,7 +525,7 @@ void loop()
     case TD_spread:
       if (No_Hygro)
       {
-        EncoderCnt++;
+        EncoderCnt += EncoderDirection;
         goto re_eval;
       }
       lcd.print("TDspread");
@@ -527,7 +546,7 @@ void loop()
         lcd.print("F     ");
       }
       if ( TD_deltaC > TD_DELTA_ALARM)
-        REDledAlarm = false;
+        REDledAlarm = false;            // turn alarm off
       break;
       
 #ifdef WITH_WIND
@@ -597,19 +616,18 @@ void loop()
       break;
       
 #endif    
+#ifdef WITH_RPM
+    case RPM:
+      lcd.print("  RPM   ");
+      lcd.setCursor ( 0, 1 );
+      lcd.print( RPM_);
+      lcd.print("      ");
+	  break;
+#endif
     default:
-      // Limit this display to valid choices, wrap around if invalid choice is reached
-      // When items are not displayable because the underlying sensor is absent, the next encoder count is incremented by one 
-      // and rechecked, so that invalid displays are beeing skipped. When the user increments the encoder count while one
-      // the last valid display option, then this default case is going to be reached which resets the count and therefore the 
-      // display option back to 0. 
-      // This mechanism leads to a one-sided menu behavior, in that it is not always possible to navigate in both directions.
-      // For example: If the only sensor available is the TMP100 sensor and the display is corrently on Temperature, then a left 
-      // turn of the know will decrement the encoder count and the display would go to RelHum, but because the hygrometer is absent 
-      // the encoder count will immediatly be incremented again and the display stays on Temp. Moving upward in the display option however 
-      // has the desired outcome, and eventually the display wrapps around to the lowest numbered display. 
-      // This mechanism could be improved by having a direction variable and then incrementing or decrementing accordingly.  
-      EncoderCnt = 0;
+      // go in the same direction as last knob input from user and re-evalute again.
+      // will wrap around in re_eval;
+      EncoderCnt += EncoderDirection;
       goto re_eval;
       break;
   }
@@ -618,10 +636,8 @@ void loop()
   SI7021_startMeasure(  );    // initiate an other measure cycle on the Hygrometer
   TMP100_startMeasure(  );    // initiate an other measure cycle on the Stand alone Thermometer
 
-
   PrevEncCnt = EncoderCnt;
   PrevShortPressCnt = ShortPressCnt;
-
 
   // Blink the RED alarm led
   if (REDledAlarm)

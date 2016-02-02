@@ -1,0 +1,76 @@
+from  https://www.easycalculation.com/weather/dewpoint-wetbulb-calculator.php
+and  https://www.easycalculation.com/weather/learn-dewpoint-wetbulb.php
+
+
+   var Es, E, dewpoint;
+    
+    Es = parseFloat(esubs(Ctemp));
+    E = parseFloat(invertedRH(Es,rh));
+
+    
+    
+    E2 = parseFloat(invertedRH(Es,rh));
+    Twguess = 0;
+    incr = 10;
+    previoussign = 1;
+    Edifference = 1;
+    
+    wetbulb = calcwetbulb(Edifference,Twguess,Ctemp,MBpressure,E2,previoussign,incr);
+	
+-------------------------------------------------------------------------------------------------------------	
+
+function invertedRH(Es,rh)
+{
+    var E;
+    E = Es * (rh/100); 
+    return E;
+}
+
+function esubs(Ctemp)
+{
+    var Es;
+    Es = 6.112 * Math.exp(17.67 * Ctemp / (Ctemp + 243.5));
+    return Es;
+}
+
+function calcwetbulb(Edifference,Twguess,Ctemp,MBpressure,E2,previoussign,incr)
+{
+    outerloop:
+    while (Math.abs(Edifference) > 0.005) 
+    {
+            Ewguess = 6.112 * Math.exp((17.67 * Twguess) / (Twguess + 243.5));
+            Eguess = Ewguess - MBpressure * (Ctemp - Twguess) * 0.00066 * (1 + (0.00115 * Twguess));
+            Edifference = E2 - Eguess; 
+            
+            if (Edifference == 0)
+            {
+                    break outerloop;
+            }
+            else
+            {
+                    if (Edifference < 0)
+                    {
+                            cursign = -1;
+                    }
+                    else
+                    {
+                            cursign = 1;
+                    }
+                    
+                    if (cursign != previoussign)
+                    {
+                            previoussign = cursign;
+                            incr = incr/10;
+                    }
+                    else
+                    {
+                            incr = incr;
+                    }
+            }
+            
+            Twguess = Twguess + incr * previoussign; 
+            
+    }
+    wetbulb = Twguess;  
+    return wetbulb;
+}

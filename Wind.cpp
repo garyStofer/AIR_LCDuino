@@ -3,8 +3,9 @@
 #include <LiquidCrystal.h>
 #include <EEPROM.h>
 
-// The pin definitions are per obfuscated Arduino pin defines -- see aka for ATMEL pin names as found on the MEGA328P spec sheet
+#ifdef WITH_WIND
 
+// The pin definitions are per obfuscated Arduino pin defines -- see aka for ATMEL pin names as found on the MEGA328P spec sheet
 #define WIND_SPEED_PIN 16	// aka PC2 (ADC2)
 #define WIND_DIR_ADC 6		// ADC6
 
@@ -197,7 +198,6 @@ void WindRead()
   WindDir += WindCal.WDir_offs;
 
   WindDir = WindDir %360;    // to make the offset  wrap around 
-
-
-
 }
+
+#endif
