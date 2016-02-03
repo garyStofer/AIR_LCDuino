@@ -29,8 +29,6 @@ void RPM_Setup()
 
 void RPM_Read()
 {
-  unsigned short count;
-  unsigned short n;
   unsigned long t_now = 0;
   unsigned long t_sample = 0;
   static unsigned long t_next = 0;
@@ -44,15 +42,10 @@ void RPM_Read()
 
   // disable the interrupt so we can get a two byte variable without getting interrupted
   PCICR = 0;  // disable PCinterupt 1 vector
-  count = RPM_Cnt;     // get the count from the pin change interrupt
+  RPM_ = RPM_Cnt* 30;     // get the count from the pin change interrupt and compute rpm -- interrupt gets both edges, so only multiply by half
   RPM_Cnt = 0;
-  t_sample = SAMPLE_PER + (t_now - t_next);
   t_next = t_now + SAMPLE_PER; // every second we update the display with new data
   PCICR |= 1 << PCIE1; // enable PCinterupt 1 vector
-
-  // calc and correct for actual sampling periode
-  RPM_ = (count * SAMPLE_PER / t_sample) * 60;  
-  
 
 }
 #endif
