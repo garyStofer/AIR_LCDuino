@@ -3,8 +3,9 @@
 #include <LiquidCrystal.h>
 #include <EEPROM.h>
 
-// The pin definitions are per obfuscated Arduino pin defines -- see aka for ATMEL pin names as found on the MEGA328P spec sheet
+#ifdef WITH_WIND
 
+// The pin definitions are per obfuscated Arduino pin defines -- see aka for ATMEL pin names as found on the MEGA328P spec sheet
 #define WIND_SPEED_PIN 16	// aka PC2 (ADC2)
 #define WIND_DIR_ADC 6		// ADC6
 
@@ -49,7 +50,7 @@ void WindSetup()
 
   // Read from eeprom
   // TODO: this needs to go further out in scope if the EEPROM is used to store other setup related items such as metric/imperial display etc
-  EEPROM.get(0, WindCal);
+  EEPROM.get(2, WindCal);
 
 }
 
@@ -133,7 +134,7 @@ WindDirCal( void )
   }
   // Store min & max in EEprom
   // TODO: this needs to go further out in scope if the EEPROM is used to store other setup related items such as metric/imperial display etc
-  EEPROM.put(0, WindCal);
+  EEPROM.put(2, WindCal);
 }
 
 
@@ -197,7 +198,6 @@ void WindRead()
   WindDir += WindCal.WDir_offs;
 
   WindDir = WindDir %360;    // to make the offset  wrap around 
-
-
-
 }
+
+#endif

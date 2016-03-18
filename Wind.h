@@ -6,9 +6,8 @@
  */
 
 #include "Arduino.h"
-
-
-
+#include "build_opts.h"
+#ifdef WITH_WIND
 #ifndef WIND_VANE_H
 #define	WIND_VANE_H
 #define WIND_SAMPLE_PER 1000   // one second, this is the measure interval
@@ -29,7 +28,7 @@ extern void WindRead(void);
 #ifdef	__cplusplus
 }
 #endif
-
+#endif
 #endif	
 
 
