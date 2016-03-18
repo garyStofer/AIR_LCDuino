@@ -1,0 +1,6 @@
+1.02 version
+added support for active buzzer, the buzzer soldered "+" to A3, "-" to A5
+
+  pinMode(A5, OUTPUT);            // Set A5 as GND point for buzzer
+  digitalWrite(A5, LOW);
+

@@ -1220,7 +1220,7 @@ Please make sure your boards conform to these design rules.</description>
 <attribute name="NAME" x="24.13" y="27.305" size="1.27" layer="26" rot="MR0"/>
 <attribute name="VALUE" x="20.32" y="28.575" size="1.27" layer="28" rot="MR90"/>
 </element>
-<element name="F1" library="dp_devices" package="PTC0805" value="" x="22.86" y="5.3975"/>
+<element name="F1" library="dp_devices" package="PTC0805" value="4A" x="22.86" y="5.3975"/>
 <element name="LCD-BL" library="1AA_Stofer" package="1X02" value="" x="21.59" y="51.435" rot="MR270"/>
 </elements>
 <signals>
