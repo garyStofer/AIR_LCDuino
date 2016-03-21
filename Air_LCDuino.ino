@@ -70,7 +70,7 @@ enum Displays {
  };
 
 // Globals for rotary encoder
-char EncoderCnt = D_Alt;    // Default startup display
+char EncoderCnt = RPM;    // Default startup display
 char EncoderPressedCnt = 0;
 char EncoderDirection = -1; // So that it decremets to a valid display in case the default display is not currently valid due to sensor lacking
 unsigned char ShortPressCnt = 0;
