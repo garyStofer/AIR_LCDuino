@@ -96,7 +96,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <avr/pgmspace.h>
 #include <EEPROM.h>
 #include <LiquidCrystal.h>
-#include <SPI.h>
 #include "Configurator.h"
 
 
@@ -281,7 +280,7 @@ void loop()
    }
 //-----------------------------------------------------------------------------------//
 //--------------------------What to do if buttons pressed----------------------------//
-   // swith dose units
+   // switch dose units
       if (readButtonDo()== LOW){
       units = 1 - units;
       digitalWrite(LIGHT, HIGH);
