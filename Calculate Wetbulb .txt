@@ -1,7 +1,6 @@
 from  https://www.easycalculation.com/weather/dewpoint-wetbulb-calculator.php
 and  https://www.easycalculation.com/weather/learn-dewpoint-wetbulb.php
 
-
    var Es, E, dewpoint;
     
     Es = parseFloat(esubs(Ctemp));
