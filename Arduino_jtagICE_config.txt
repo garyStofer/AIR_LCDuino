@@ -1,0 +1,33 @@
+To configure AVDdude and Arduino IDE so that one can burn bootloader  &  program via AVR_JTAGICE MK2
+
+do the following:
+
+In file avrdude.conf ( C:\Program Files\Arduino\hardware\tools\avr\etc\) add the following linesv near jtag2isp:
+ 
+		# JTAG ICE mkII in ISP mode using Serial port RS232
+		programmer
+		id    = "myjtag2isp";
+		desc  = "Atmel JTAG ICE mkII in ISP mode using RS232";
+		baudrate = 115200;
+		type  = "jtagmkii_isp";
+		connection_type = serial;
+		;
+		
+in file programmers.txt ( C:\Program Files\Arduino\hardware\arduino\avr\ ) add the following lines at the top:
+
+		avricemkii.name=AVR JTAG ICE mkII using RS232
+		avricemkii.communication=serial
+		avricemkii.protocol=myjtag2isp
+		avricemkii.program.protocol=myjtag2isp
+		avricemkii.program.tool=avrdude
+		avricemkii.program.extra_params=-Pcom1
+		
+change -Pcom1 accordingly to the com port used to connect
+
+Connect the AVR-JTAGICE_MK2 via usb adapter or RS232 cable and provide 9-12V DC to adapter.
+
+In arduino IDE choose the new programming adapter from the list.
+
+When burning to the device there is no progress report while it's burning -- only indications are status lights on JTAG adapter.
+When programming is complete all the avrdude output will scroll onto the screen all at once. 
+	
