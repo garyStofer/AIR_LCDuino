@@ -103,7 +103,7 @@ static bool No_TMP100 = true;
   is 90deg opposed.  RC filtering of the contacts is required. 
 
   Three encoder count variables are being modified by this ISR
-    1) EncoderCnt increments or dewcrements when the knob is turned without the button being press
+    1) EncoderCnt increments or decrements when the knob is turned without the button being pressed
     2) EncoderPressCnt increments or decrements when the knob is  turned while the button is also pressed. 
        This happens only after a LONG press timeout
     3) EncoderDirection either +1 or -1 depending on the direction the user turned the knob last
@@ -126,10 +126,10 @@ void ISR_KnobTurn( void)
 /*
   ISR to handle the button press interrupt. 
   
-  Two modes of button presses are recognized. A short, momentary press and a long, timing-out press.
-  While the hardware de bounced button signal is sampled for up to TIMEOUT time in this ISR no other code is being executed. If the time-out occurs
-  a long button press-, otherwise a short button press is registered. Timing has to be done by a software counter since interrupts are disabled
-  and function millis() and micros() don't work during this time. 
+  Two modes of button presses are recognized. A short, momentary press, and a long, timing-out press.
+  While the hardware de bounced button signal is sampled for up to LONGPRESS_TIMEOUT time in this ISR no other code is being executed. If the time-out occurs
+  a long button press-, otherwise a short button press is registered. This timing has to be done by a software counter since interrupts are disabled
+  and function millis() and micros() won't work during this time. 
   Software timing is CPU clock dependent and therefore has to be adjusted to the clock frequency. 
 */
 void ISR_ButtonPress(void)
